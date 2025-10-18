@@ -1,0 +1,170 @@
+--// WindUI v2 (Tabs + Buttons + Toggles)
+local WindUI = {}
+
+local TweenService = game:GetService("TweenService")
+
+-- Utility functions
+local function createRoundedFrame(parent, size, position, cornerRadius, bgColor)
+    local frame = Instance.new("Frame")
+    frame.Size = size
+    frame.Position = position
+    frame.BackgroundColor3 = bgColor
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+
+    local uicorner = Instance.new("UICorner")
+    uicorner.CornerRadius = cornerRadius
+    uicorner.Parent = frame
+
+    return frame
+end
+
+local function createLabel(parent, text, size, position, font, textSize, textColor, alignment)
+    local label = Instance.new("TextLabel")
+    label.Text = text
+    label.Size = size
+    label.Position = position
+    label.BackgroundTransparency = 1
+    label.Font = font
+    label.TextSize = textSize
+    label.TextColor3 = textColor
+    label.TextXAlignment = alignment or Enum.TextXAlignment.Left
+    label.Parent = parent
+    return label
+end
+
+local function createButton(parent, text, size, position, bgColor, textColor)
+    local button = Instance.new("TextButton")
+    button.Size = size
+    button.Position = position
+    button.BackgroundColor3 = bgColor
+    button.TextColor3 = textColor
+    button.Text = text
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 16
+    button.AutoButtonColor = false
+    button.BorderSizePixel = 0
+
+    local uicorner = Instance.new("UICorner")
+    uicorner.CornerRadius = UDim.new(0, 6)
+    uicorner.Parent = button
+
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = bgColor:Lerp(Color3.new(1, 1, 1), 0.1)}):Play()
+    end)
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = bgColor}):Play()
+    end)
+
+    button.Parent = parent
+    return button
+end
+
+-- Main window
+function WindUI:CreateWindow(title)
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "WindUI"
+    gui.ResetOnSpawn = false
+    gui.Parent = game:GetService("CoreGui")
+
+    local mainFrame = createRoundedFrame(gui, UDim2.new(0, 500, 0, 350), UDim2.new(0.5, -250, 0.5, -175), UDim.new(0, 12), Color3.fromRGB(25, 25, 25))
+
+    createLabel(mainFrame, title, UDim2.new(1, -20, 0, 40), UDim2.new(0, 10, 0, 10), Enum.Font.GothamBold, 24, Color3.fromRGB(255, 255, 255), Enum.TextXAlignment.Left)
+
+    -- Sidebar
+    local sideBar = createRoundedFrame(mainFrame, UDim2.new(0, 120, 1, -60), UDim2.new(0, 10, 0, 50), UDim.new(0, 8), Color3.fromRGB(40, 40, 40))
+
+    -- Content area
+    local contentFrame = createRoundedFrame(mainFrame, UDim2.new(1, -150, 1, -60), UDim2.new(0, 140, 0, 50), UDim.new(0, 8), Color3.fromRGB(35, 35, 35))
+
+    local Tabs = {}
+
+    function Tabs:CreateTab(tabName)
+        local tab = {}
+        local tabButton = createButton(sideBar, tabName, UDim2.new(1, -20, 0, 40), UDim2.new(0, 10, 0, 10 + (#sideBar:GetChildren() * 50)), Color3.fromRGB(70, 130, 180), Color3.fromRGB(255, 255, 255))
+
+        local tabFrame = Instance.new("ScrollingFrame")
+        tabFrame.Size = UDim2.new(1, -20, 1, -20)
+        tabFrame.Position = UDim2.new(0, 10, 0, 10)
+        tabFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+        tabFrame.ScrollBarThickness = 4
+        tabFrame.BackgroundTransparency = 1
+        tabFrame.Visible = false
+        tabFrame.Parent = contentFrame
+
+        local UIListLayout = Instance.new("UIListLayout")
+        UIListLayout.Padding = UDim.new(0, 10)
+        UIListLayout.Parent = tabFrame
+
+        function tab:Show()
+            for _, otherTab in pairs(contentFrame:GetChildren()) do
+                if otherTab:IsA("ScrollingFrame") then
+                    otherTab.Visible = false
+                end
+            end
+            tabFrame.Visible = true
+        end
+
+        tabButton.MouseButton1Click:Connect(function()
+            tab:Show()
+        end)
+
+        -- Tab element functions
+        function tab:AddButton(text, callback)
+            local button = createButton(tabFrame, text, UDim2.new(1, -10, 0, 40), UDim2.new(0, 0, 0, 0), Color3.fromRGB(70, 130, 180), Color3.fromRGB(255, 255, 255))
+            button.MouseButton1Click:Connect(callback)
+        end
+
+        function tab:AddLabel(text)
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, -10, 0, 30)
+            label.BackgroundTransparency = 1
+            label.Text = text
+            label.Font = Enum.Font.Gotham
+            label.TextSize = 18
+            label.TextColor3 = Color3.fromRGB(200, 200, 200)
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.Parent = tabFrame
+        end
+
+        function tab:AddToggle(text, default, callback)
+            local toggleFrame = createRoundedFrame(tabFrame, UDim2.new(1, -10, 0, 40), UDim2.new(0, 0, 0, 0), UDim.new(0, 6), Color3.fromRGB(50, 50, 50))
+
+            local toggleLabel = createLabel(toggleFrame, text, UDim2.new(0.8, 0, 1, 0), UDim2.new(0, 10, 0, 0), Enum.Font.Gotham, 18, Color3.fromRGB(220, 220, 220), Enum.TextXAlignment.Left)
+
+            local toggleButton = createRoundedFrame(toggleFrame, UDim2.new(0, 30, 0, 20), UDim2.new(1, -40, 0.5, -10), UDim.new(0, 10), Color3.fromRGB(100, 100, 100))
+
+            local circle = createRoundedFrame(toggleButton, UDim2.new(0, 18, 0, 18), UDim2.new(0, 2, 0, 1), UDim.new(0, 9), Color3.fromRGB(200, 200, 200))
+
+            local toggled = default
+
+            local function updateToggle()
+                if toggled then
+                    TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(1, -20, 0, 1)}):Play()
+                    TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 130, 180)}):Play()
+                else
+                    TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0, 1)}):Play()
+                    TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+                end
+            end
+
+            toggleButton.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    toggled = not toggled
+                    updateToggle()
+                    if callback then
+                        callback(toggled)
+                    end
+                end
+            end)
+
+            updateToggle()
+        end
+
+        return tab
+    end
+
+    return Tabs
+end
+
+return WindUI
